@@ -25,10 +25,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes will be added here
-// app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/users', require('./routes/users'));
-// etc...
+// API routes
+app.use('/api/auth', require('./routes/auth'));
 
 // 404 handler
 app.use((req, res) => {

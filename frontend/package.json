@@ -1,0 +1,33 @@
+{
+  "name": "schedule-app-frontend",
+  "version": "1.0.0",
+  "description": "Frontend web application for Schedule App",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "vue": "^3.4.15",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "axios": "^1.6.5",
+    "socket.io-client": "^4.6.1",
+    "vuedraggable": "^4.1.0",
+    "date-fns": "^3.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.3",
+    "vite": "^5.0.11",
+    "eslint": "^8.56.0",
+    "eslint-plugin-vue": "^9.20.1",
+    "prettier": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Always warn about the context remaining and before starting a new task make sure the left over context is enough for the task or not. if not ask the user to use compact.
+
 ## Project Overview
 
 Schedule App is an entertainment booking management system for a venue with multiple areas (rooms). The system allows:

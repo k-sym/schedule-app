@@ -74,6 +74,55 @@ const userSchemas = {
   }
 };
 
+// Area validation schemas
+const areaSchemas = {
+  create: {
+    body: Joi.object({
+      name: Joi.string().min(1).max(100).required().messages({
+        'string.empty': 'Area name cannot be empty',
+        'string.max': 'Area name must not exceed 100 characters',
+        'any.required': 'Area name is required'
+      }),
+      display_order: Joi.number().integer().min(0).default(0),
+      operating_hours: Joi.object().optional().allow(null),
+      capacity: Joi.number().integer().min(1).optional().allow(null),
+      notes: Joi.string().optional().allow(null, ''),
+      is_active: Joi.boolean().default(true)
+    })
+  },
+
+  update: {
+    params: Joi.object({
+      id: Joi.string().uuid().required()
+    }),
+    body: Joi.object({
+      name: Joi.string().min(1).max(100).optional(),
+      display_order: Joi.number().integer().min(0).optional(),
+      operating_hours: Joi.object().optional().allow(null),
+      capacity: Joi.number().integer().min(1).optional().allow(null),
+      notes: Joi.string().optional().allow(null, ''),
+      is_active: Joi.boolean().optional()
+    }).min(1)
+  },
+
+  reorder: {
+    body: Joi.object({
+      areas: Joi.array().items(
+        Joi.object({
+          id: Joi.string().uuid().required(),
+          display_order: Joi.number().integer().min(0).required()
+        })
+      ).min(1).required()
+    })
+  },
+
+  getById: {
+    params: Joi.object({
+      id: Joi.string().uuid().required()
+    })
+  }
+};
+
 // UUID parameter validation
 const uuidParam = {
   params: Joi.object({
@@ -86,5 +135,6 @@ const uuidParam = {
 module.exports = {
   authSchemas,
   userSchemas,
+  areaSchemas,
   uuidParam
 };

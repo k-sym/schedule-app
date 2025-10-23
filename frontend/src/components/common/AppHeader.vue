@@ -4,7 +4,7 @@
       <h1 class="app-title">Schedule App</h1>
       <div class="header-right">
         <span class="user-info">
-          <span class="user-name">{{ user?.first_name }} {{ user?.last_name }}</span>
+          <span class="user-name">{{ user?.name }}</span>
           <span class="user-role" :class="`role-${user?.role}`">{{ user?.role }}</span>
         </span>
         <button class="btn-logout" @click="handleLogout">Logout</button>

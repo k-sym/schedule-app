@@ -9,7 +9,7 @@
         </div>
         <div class="content-body">
           <div class="welcome-card">
-            <h2>Welcome, {{ user?.first_name }}!</h2>
+            <h2>Welcome, {{ user?.name }}!</h2>
             <p>Schedule App - Phase 2 Frontend Implementation</p>
             <div class="quick-stats" v-if="isAdmin">
               <div class="stat-card">

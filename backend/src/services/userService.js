@@ -21,7 +21,7 @@ class UserService {
 
     const users = await User.findAll({
       where,
-      order: [['last_name', 'ASC'], ['first_name', 'ASC']]
+      order: [['name', 'ASC']]
     });
 
     return users;

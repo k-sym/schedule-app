@@ -47,8 +47,7 @@ const userSchemas = {
       email: Joi.string().email().required(),
       password: Joi.string().min(6).required(),
       role: Joi.string().valid('admin', 'entertainer').default('entertainer'),
-      first_name: Joi.string().min(1).max(100).required(),
-      last_name: Joi.string().min(1).max(100).required(),
+      name: Joi.string().min(1).max(200).required(),
       phone: Joi.string().pattern(/^[0-9\s\-\+\(\)]+$/).optional().allow(null, '')
     })
   },
@@ -60,8 +59,7 @@ const userSchemas = {
     body: Joi.object({
       email: Joi.string().email().optional(),
       role: Joi.string().valid('admin', 'entertainer').optional(),
-      first_name: Joi.string().min(1).max(100).optional(),
-      last_name: Joi.string().min(1).max(100).optional(),
+      name: Joi.string().min(1).max(200).optional(),
       phone: Joi.string().pattern(/^[0-9\s\-\+\(\)]+$/).optional().allow(null, ''),
       is_active: Joi.boolean().optional()
     }).min(1)

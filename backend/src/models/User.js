@@ -27,15 +27,9 @@ module.exports = (sequelize) => {
       allowNull: false,
       defaultValue: 'entertainer'
     },
-    first_name: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-      field: 'first_name'
-    },
-    last_name: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-      field: 'last_name'
+    name: {
+      type: DataTypes.STRING(200),
+      allowNull: false
     },
     phone: {
       type: DataTypes.STRING(20),

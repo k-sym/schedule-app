@@ -21,7 +21,7 @@
               <div class="card-body">
                 <div class="info-row">
                   <span class="label">Name</span>
-                  <span class="value">{{ user?.first_name }} {{ user?.last_name }}</span>
+                  <span class="value">{{ user?.name }}</span>
                 </div>
                 <div class="info-row">
                   <span class="label">Email</span>
@@ -114,22 +114,13 @@
         </div>
         <form @submit.prevent="handleUpdateProfile" class="modal-body">
           <div class="form-group">
-            <label>First Name *</label>
+            <label>Name *</label>
             <input
-              v-model="profileForm.first_name"
+              v-model="profileForm.name"
               type="text"
               required
-              maxlength="50"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Last Name *</label>
-            <input
-              v-model="profileForm.last_name"
-              type="text"
-              required
-              maxlength="50"
+              maxlength="200"
+              placeholder="Your name or stage name"
             />
           </div>
 
@@ -183,8 +174,7 @@ const updatingProfile = ref(false)
 const changingPassword = ref(false)
 
 const profileForm = ref({
-  first_name: '',
-  last_name: '',
+  name: '',
   email: '',
   phone: ''
 })
@@ -199,8 +189,7 @@ const passwordForm = ref({
 watch(user, (newUser) => {
   if (newUser) {
     profileForm.value = {
-      first_name: newUser.first_name,
-      last_name: newUser.last_name,
+      name: newUser.name,
       email: newUser.email,
       phone: newUser.phone || ''
     }

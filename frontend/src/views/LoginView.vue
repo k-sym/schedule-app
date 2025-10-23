@@ -75,7 +75,7 @@ async function handleLogin() {
       refreshToken: response.refreshToken
     })
 
-    success(`Welcome, ${response.user.first_name}!`)
+    success(`Welcome, ${response.user.name}!`)
     router.push('/dashboard')
   } catch (err) {
     error.value = err.response?.data?.error || 'Login failed. Please try again.'

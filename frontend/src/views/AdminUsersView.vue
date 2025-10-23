@@ -39,7 +39,7 @@
               </thead>
               <tbody>
                 <tr v-for="user in filteredUsers" :key="user.id">
-                  <td>{{ user.first_name }} {{ user.last_name }}</td>
+                  <td>{{ user.name }}</td>
                   <td>{{ user.email }}</td>
                   <td>
                     <span :class="['badge', `badge-${user.role}`]">
@@ -102,22 +102,13 @@
         </div>
         <form @submit.prevent="handleSubmit" class="modal-body">
           <div class="form-group">
-            <label>First Name *</label>
+            <label>Name *</label>
             <input
-              v-model="formData.first_name"
+              v-model="formData.name"
               type="text"
               required
-              maxlength="50"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Last Name *</label>
-            <input
-              v-model="formData.last_name"
-              type="text"
-              required
-              maxlength="50"
+              maxlength="200"
+              placeholder="Full name or stage/band name"
             />
           </div>
 
@@ -176,7 +167,7 @@
           <h2>Confirm Deactivation</h2>
         </div>
         <div class="modal-body">
-          <p>Are you sure you want to deactivate <strong>{{ userToDeactivate?.first_name }} {{ userToDeactivate?.last_name }}</strong>?</p>
+          <p>Are you sure you want to deactivate <strong>{{ userToDeactivate?.name }}</strong>?</p>
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" @click="showDeactivateModal = false">
@@ -217,8 +208,7 @@ const statusFilter = ref('')
 const currentUserId = computed(() => authStore.user?.id)
 
 const formData = ref({
-  first_name: '',
-  last_name: '',
+  name: '',
   email: '',
   password: '',
   role: 'entertainer',
@@ -259,8 +249,7 @@ async function fetchUsers() {
 function editUser(user) {
   editingUserId.value = user.id
   formData.value = {
-    first_name: user.first_name,
-    last_name: user.last_name,
+    name: user.name,
     email: user.email,
     role: user.role,
     phone: user.phone || ''
@@ -322,8 +311,7 @@ function closeModals() {
   showEditModal.value = false
   editingUserId.value = null
   formData.value = {
-    first_name: '',
-    last_name: '',
+    name: '',
     email: '',
     password: '',
     role: 'entertainer',

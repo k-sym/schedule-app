@@ -1,9 +1,7 @@
 <template>
   <div class="dashboard-layout">
     <AppHeader />
-    <div class="dashboard-main">
-      <AppSidebar />
-      <main class="dashboard-content">
+    <main class="dashboard-content">
         <div class="content-header">
           <h1>My Profile</h1>
         </div>
@@ -103,7 +101,6 @@
           </div>
         </div>
       </main>
-    </div>
 
     <!-- Edit Profile Modal -->
     <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
@@ -158,7 +155,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import AppHeader from '@/components/common/AppHeader.vue'
-import AppSidebar from '@/components/common/AppSidebar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { authAPI } from '@/api/auth'
 import { usersAPI } from '@/api/users'
@@ -252,15 +248,9 @@ async function handleChangePassword() {
 
 <style scoped>
 .dashboard-layout {
-  height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-.dashboard-main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
+  height: 100vh;
 }
 
 .dashboard-content {

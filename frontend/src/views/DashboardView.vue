@@ -1,50 +1,46 @@
 <template>
   <div class="dashboard-layout">
     <AppHeader />
-    <div class="dashboard-main">
-      <AppSidebar />
-      <main class="dashboard-content">
-        <div class="content-header">
-          <h1>Dashboard</h1>
-        </div>
-        <div class="content-body">
-          <div class="welcome-card">
-            <h2>Welcome, {{ user?.name }}!</h2>
-            <p>Schedule App - Phase 2 Frontend Implementation</p>
-            <div class="quick-stats" v-if="isAdmin">
-              <div class="stat-card">
-                <div class="stat-icon">👥</div>
-                <div class="stat-info">
-                  <div class="stat-label">Total Users</div>
-                  <div class="stat-value">{{ totalUsers }}</div>
-                </div>
+    <main class="dashboard-content">
+      <div class="content-header">
+        <h1>Dashboard</h1>
+      </div>
+      <div class="content-body">
+        <div class="welcome-card">
+          <h2>Welcome, {{ user?.name }}!</h2>
+          <p>Schedule App - Phase 2 Frontend Implementation</p>
+          <div class="quick-stats" v-if="isAdmin">
+            <div class="stat-card">
+              <div class="stat-icon">👥</div>
+              <div class="stat-info">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value">{{ totalUsers }}</div>
               </div>
-              <div class="stat-card">
-                <div class="stat-icon">🎭</div>
-                <div class="stat-info">
-                  <div class="stat-label">Entertainers</div>
-                  <div class="stat-value">{{ totalEntertainers }}</div>
-                </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🎭</div>
+              <div class="stat-info">
+                <div class="stat-label">Acts</div>
+                <div class="stat-value">{{ totalEntertainers }}</div>
               </div>
-              <div class="stat-card">
-                <div class="stat-icon">🏢</div>
-                <div class="stat-info">
-                  <div class="stat-label">Areas</div>
-                  <div class="stat-value">{{ totalAreas }}</div>
-                </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🏢</div>
+              <div class="stat-info">
+                <div class="stat-label">Areas</div>
+                <div class="stat-value">{{ totalAreas }}</div>
               </div>
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import AppHeader from '@/components/common/AppHeader.vue'
-import AppSidebar from '@/components/common/AppSidebar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
 import { useAreasStore } from '@/stores/areas'
@@ -73,15 +69,9 @@ onMounted(async () => {
 
 <style scoped>
 .dashboard-layout {
-  height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-.dashboard-main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
+  height: 100vh;
 }
 
 .dashboard-content {

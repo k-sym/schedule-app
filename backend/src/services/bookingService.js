@@ -45,7 +45,7 @@ async function getAllBookings(filters = {}) {
     include: [
       {
         association: 'entertainer',
-        attributes: ['id', 'first_name', 'last_name', 'email']
+        attributes: ['id', 'name', 'email']
       },
       {
         association: 'area',
@@ -53,7 +53,7 @@ async function getAllBookings(filters = {}) {
       },
       {
         association: 'creator',
-        attributes: ['id', 'first_name', 'last_name']
+        attributes: ['id', 'name']
       }
     ],
     order: [['booking_date', 'ASC']]
@@ -104,7 +104,7 @@ async function getBookingById(bookingId) {
     include: [
       {
         association: 'entertainer',
-        attributes: ['id', 'first_name', 'last_name', 'email']
+        attributes: ['id', 'name', 'email']
       },
       {
         association: 'area',
@@ -112,7 +112,7 @@ async function getBookingById(bookingId) {
       },
       {
         association: 'creator',
-        attributes: ['id', 'first_name', 'last_name']
+        attributes: ['id', 'name']
       }
     ]
   });
@@ -149,25 +149,45 @@ async function createBooking(bookingData, createdBy) {
     };
   }
 
-  // Create the booking
-  const booking = await Booking.create({
-    entertainer_id: entertainerId,
-    area_id: areaId,
-    booking_date: bookingDate,
-    notes: notes || null,
-    status: 'confirmed',
-    created_by: createdBy
-  });
+  try {
+    // Create the booking
+    const booking = await Booking.create({
+      entertainer_id: entertainerId,
+      area_id: areaId,
+      booking_date: bookingDate,
+      notes: notes || null,
+      status: 'confirmed',
+      created_by: createdBy
+    });
 
-  // Fetch the created booking with associations
-  const createdBooking = await getBookingById(booking.id);
+    // Fetch the created booking with associations
+    const createdBooking = await getBookingById(booking.id);
 
-  return {
-    success: true,
-    booking: createdBooking,
-    conflicts: [],
-    warnings: validation.warnings
-  };
+    return {
+      success: true,
+      booking: createdBooking,
+      conflicts: [],
+      warnings: validation.warnings
+    };
+  } catch (error) {
+    // Handle database constraint violations
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      // Check which constraint was violated
+      if (error.fields?.area_id && error.fields?.booking_date) {
+        return {
+          success: false,
+          conflicts: [{
+            type: 'area_already_booked',
+            message: 'This area is already booked on this date'
+          }],
+          warnings: validation.warnings,
+          booking: null
+        };
+      }
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }
 
 /**
@@ -234,9 +254,10 @@ async function deleteBooking(bookingId) {
     throw new Error('Booking not found');
   }
 
-  // Soft delete by setting status to cancelled
-  booking.status = 'cancelled';
-  await booking.save();
+  // Hard delete the booking
+  // Note: We use hard delete instead of soft delete because the unique constraint
+  // on (area_id, booking_date) prevents creating new bookings in the same slot
+  await booking.destroy();
 
   return true;
 }

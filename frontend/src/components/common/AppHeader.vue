@@ -76,7 +76,7 @@ const isAdmin = computed(() => authStore.isAdmin)
 const isEntertainer = computed(() => authStore.isEntertainer)
 const userName = computed(() => {
   if (!user.value) return ''
-  return `${user.value.first_name} ${user.value.last_name}`
+  return user.value.name
 })
 
 async function handleLogout() {

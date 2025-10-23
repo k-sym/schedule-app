@@ -58,7 +58,7 @@ async function checkAreaConflict(areaId, bookingDate, excludeBookingId = null) {
   const existingBooking = await Booking.findOne({
     where,
     include: [
-      { association: 'entertainer', attributes: ['id', 'first_name', 'last_name'] }
+      { association: 'entertainer', attributes: ['id', 'name'] }
     ]
   });
 
@@ -122,10 +122,10 @@ async function validateBooking(bookingData) {
   if (areaConflict) {
     conflicts.push({
       type: 'area_already_booked',
-      message: `This area is already booked by ${areaConflict.entertainer.first_name} ${areaConflict.entertainer.last_name} on this date`,
+      message: `This area is already booked by ${areaConflict.entertainer.name} on this date`,
       conflictingBooking: {
         id: areaConflict.id,
-        entertainerName: `${areaConflict.entertainer.first_name} ${areaConflict.entertainer.last_name}`,
+        entertainerName: areaConflict.entertainer.name,
         date: areaConflict.booking_date
       }
     });
@@ -164,7 +164,7 @@ async function getBookingsInRange(startDate, endDate) {
       status: { [Op.ne]: 'cancelled' }
     },
     include: [
-      { association: 'entertainer', attributes: ['id', 'first_name', 'last_name'] },
+      { association: 'entertainer', attributes: ['id', 'name'] },
       { association: 'area', attributes: ['id', 'name'] }
     ],
     order: [['booking_date', 'ASC']]

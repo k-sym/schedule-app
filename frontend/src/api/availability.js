@@ -86,3 +86,27 @@ export const deleteAvailability = async (id) => {
   const response = await apiClient.delete(`/availability/${id}`);
   return response.data;
 };
+
+/**
+ * Admin: Bulk create availability for a specific user
+ * @param {string} userId - User ID
+ * @param {Object} data
+ * @param {Array<string>} data.dates - Array of dates in YYYY-MM-DD format
+ * @param {string} data.notes - Optional notes
+ */
+export const bulkCreateAvailabilityForUser = async (userId, data) => {
+  const response = await apiClient.post(`/availability/admin/${userId}/bulk`, data);
+  return response.data;
+};
+
+/**
+ * Admin: Bulk delete availability for a specific user
+ * @param {string} userId - User ID
+ * @param {Array<string>} dates - Array of dates in YYYY-MM-DD format
+ */
+export const bulkDeleteAvailabilityForUser = async (userId, dates) => {
+  const response = await apiClient.delete(`/availability/admin/${userId}/bulk`, {
+    data: { dates }
+  });
+  return response.data;
+};

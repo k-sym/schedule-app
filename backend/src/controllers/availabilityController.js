@@ -304,6 +304,83 @@ class AvailabilityController {
       next(error);
     }
   }
+
+  /**
+   * Admin: Bulk create availability for a specific user
+   * POST /api/availability/admin/:userId/bulk
+   * Body: { dates: [date1, date2, ...], notes }
+   */
+  async adminBulkCreateAvailability(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const { dates, notes } = req.body;
+
+      if (!dates || !Array.isArray(dates) || dates.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'dates array is required and must not be empty'
+        });
+      }
+
+      const parsedDates = dates.map(d => new Date(d));
+
+      const result = await availabilityService.bulkCreateAvailability(
+        userId,
+        parsedDates,
+        notes
+      );
+
+      res.status(201).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      if (error.message === 'Entertainer not found' || 
+          error.message === 'User is not an entertainer') {
+        return res.status(400).json({
+          success: false,
+          error: error.message
+        });
+      }
+
+      logger.error('Error admin bulk creating availability:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Bulk delete availability for a specific user
+   * DELETE /api/availability/admin/:userId/bulk
+   * Body: { dates: [date1, date2, ...] }
+   */
+  async adminBulkDeleteAvailability(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const { dates } = req.body;
+
+      if (!dates || !Array.isArray(dates) || dates.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'dates array is required and must not be empty'
+        });
+      }
+
+      const parsedDates = dates.map(d => new Date(d));
+
+      const result = await availabilityService.bulkDeleteAvailability(
+        userId,
+        parsedDates
+      );
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error admin bulk deleting availability:', error);
+      next(error);
+    }
+  }
 }
 
 module.exports = new AvailabilityController();

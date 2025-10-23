@@ -1,9 +1,7 @@
 <template>
   <div class="dashboard-layout">
     <AppHeader />
-    <div class="dashboard-main">
-      <AppSidebar />
-      <main class="dashboard-content">
+    <main class="dashboard-content">
         <div class="content-header">
           <h1>Area Management</h1>
           <button class="btn-primary" @click="showCreateModal = true">
@@ -78,7 +76,6 @@
           <div v-if="loading" class="loading">Loading areas...</div>
         </div>
       </main>
-    </div>
 
     <!-- Create/Edit Area Modal -->
     <div v-if="showCreateModal || showEditModal" class="modal-overlay" @click="closeModals">
@@ -204,7 +201,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import AppHeader from '@/components/common/AppHeader.vue'
-import AppSidebar from '@/components/common/AppSidebar.vue'
 import { useAreasStore } from '@/stores/areas'
 import { useToast } from '@/composables/useToast'
 
@@ -339,15 +335,9 @@ function closeModals() {
 
 <style scoped>
 .dashboard-layout {
-  height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-.dashboard-main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
+  height: 100vh;
 }
 
 .dashboard-content {

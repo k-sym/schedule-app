@@ -46,6 +46,9 @@
                   v-for="area in areas"
                   :key="area.id"
                   class="area-section"
+                  :class="{ 'drag-over': dragOverTarget === `${area.id}-${day}` }"
+                  :data-area-id="area.id"
+                  :data-day="day"
                   @drop="handleDrop($event, area.id, day)"
                   @dragover.prevent
                   @dragenter="handleDragEnter($event, area.id, day)"
@@ -83,13 +86,13 @@
         </div>
       </div>
 
-      <!-- Entertainers Sidebar -->
+      <!-- Acts Sidebar -->
       <div class="entertainers-sidebar">
-        <h3>Entertainers</h3>
+        <h3>Acts</h3>
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search entertainers..."
+          placeholder="Search Acts..."
           class="search-input"
         />
         <div class="entertainers-list">
@@ -102,7 +105,7 @@
             @dragend="handleDragEnd"
           >
             <span class="entertainer-name">
-              {{ entertainer.first_name }} {{ entertainer.last_name }}
+              {{ entertainer.name }}
             </span>
             <span
               class="availability-badge"
@@ -162,6 +165,7 @@ const loading = ref(false)
 const searchQuery = ref('')
 const draggedEntertainer = ref(null)
 const selectedDate = ref(null)
+const dragOverTarget = ref(null)
 const showConflictModal = ref(false)
 const conflicts = ref([])
 const warnings = ref([])
@@ -198,7 +202,7 @@ const filteredEntertainers = computed(() => {
   if (!searchQuery.value) return entertainers.value
   const query = searchQuery.value.toLowerCase()
   return entertainers.value.filter(e =>
-    `${e.first_name} ${e.last_name}`.toLowerCase().includes(query)
+    e.name.toLowerCase().includes(query)
   )
 })
 
@@ -235,7 +239,7 @@ function getBooking(areaId, day) {
 function getEntertainerName(areaId, day) {
   const booking = getBooking(areaId, day)
   if (!booking || !booking.entertainer) return ''
-  return `${booking.entertainer.first_name} ${booking.entertainer.last_name}`
+  return booking.entertainer.name
 }
 
 function getBookingClass(areaId, day) {
@@ -260,48 +264,81 @@ function isAvailableOnDate(entertainerId, dateStr) {
 function handleDragStart(event, entertainer) {
   draggedEntertainer.value = entertainer
   event.dataTransfer.effectAllowed = 'move'
+  event.target.style.opacity = '0.5'
 }
 
-function handleDragEnd() {
+function handleDragEnd(event) {
   draggedEntertainer.value = null
+  dragOverTarget.value = null
+  event.target.style.opacity = '1'
 }
 
 function handleDragEnter(event, areaId, day) {
+  event.preventDefault()
   selectedDate.value = formatDate(day)
+  dragOverTarget.value = `${areaId}-${day}`
 }
 
-function handleDragLeave() {
-  // Keep for availability checking
+function handleDragLeave(event) {
+  // Only clear if we're leaving the drop zone entirely
+  const relatedTarget = event.relatedTarget
+  if (!relatedTarget || !event.currentTarget.contains(relatedTarget)) {
+    if (dragOverTarget.value === `${event.currentTarget.dataset.areaId}-${event.currentTarget.dataset.day}`) {
+      dragOverTarget.value = null
+    }
+  }
 }
 
 async function handleDrop(event, areaId, day) {
   event.preventDefault()
+  dragOverTarget.value = null
+
   if (!draggedEntertainer.value) return
 
   const bookingDate = formatDate(day)
   const entertainerId = draggedEntertainer.value.id
 
-  const result = await bookingStore.createBooking({
-    entertainerId,
-    areaId,
-    bookingDate
-  })
+  // Save scroll position before reloading
+  const calendarSection = document.querySelector('.calendar-section')
+  const scrollTop = calendarSection ? calendarSection.scrollTop : 0
 
-  if (!result.success) {
-    conflicts.value = result.conflicts || []
-    warnings.value = result.warnings || []
-    showConflictModal.value = true
-  } else {
-    await loadBookings()
+  try {
+    const result = await bookingStore.createBooking({
+      entertainerId,
+      areaId,
+      bookingDate
+    })
 
-    if (result.warnings && result.warnings.length > 0) {
-      warnings.value = result.warnings
-      conflicts.value = []
+    if (!result.success) {
+      // Hard conflicts - booking was not created
+      conflicts.value = result.conflicts || []
+      warnings.value = result.warnings || []
       showConflictModal.value = true
-    }
-  }
+    } else {
+      // Success - reload bookings to show the new one
+      await loadBookings()
 
-  draggedEntertainer.value = null
+      // Restore scroll position after DOM updates
+      await new Promise(resolve => setTimeout(resolve, 0))
+      if (calendarSection) {
+        calendarSection.scrollTop = scrollTop
+      }
+
+      // Show warnings (e.g., act unavailable) but booking was created
+      if (result.warnings && result.warnings.length > 0) {
+        warnings.value = result.warnings
+        conflicts.value = []
+        showConflictModal.value = true
+      }
+    }
+  } catch (error) {
+    console.error('Error creating booking:', error)
+    conflicts.value = [{ message: 'An error occurred while creating the booking' }]
+    warnings.value = []
+    showConflictModal.value = true
+  } finally {
+    draggedEntertainer.value = null
+  }
 }
 
 // Actions
@@ -311,8 +348,18 @@ function editBooking(booking) {
 
 async function confirmDeleteBooking(booking) {
   if (confirm('Are you sure you want to cancel this booking?')) {
+    // Save scroll position before reloading
+    const calendarSection = document.querySelector('.calendar-section')
+    const scrollTop = calendarSection ? calendarSection.scrollTop : 0
+
     await bookingStore.deleteBooking(booking.id)
     await loadBookings()
+
+    // Restore scroll position after DOM updates
+    await new Promise(resolve => setTimeout(resolve, 0))
+    if (calendarSection) {
+      calendarSection.scrollTop = scrollTop
+    }
   }
 }
 
@@ -358,7 +405,7 @@ async function loadEntertainers() {
   try {
     await userStore.fetchAll()
   } catch (error) {
-    console.error('Failed to load entertainers:', error)
+    console.error('Failed to load acts:', error)
   }
 }
 
@@ -532,10 +579,17 @@ onMounted(async () => {
   flex-direction: column;
   position: relative;
   min-height: 32px;
+  transition: all 0.2s;
 }
 
 .area-section:last-child {
   border-bottom: none;
+}
+
+.area-section.drag-over {
+  background: #e3f2fd;
+  border: 2px dashed #2196F3;
+  border-radius: 4px;
 }
 
 .area-label {
@@ -618,7 +672,7 @@ onMounted(async () => {
   font-size: 1.2rem;
 }
 
-/* Entertainers Sidebar */
+/* Acts Sidebar */
 .entertainers-sidebar {
   width: 300px;
   background: white;
@@ -668,6 +722,7 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   transition: all 0.2s;
+  user-select: none;
 }
 
 .entertainer-card:hover {
@@ -675,6 +730,10 @@ onMounted(async () => {
   border-color: #2196F3;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1);
+}
+
+.entertainer-card:active {
+  cursor: grabbing;
 }
 
 .entertainer-card .entertainer-name {

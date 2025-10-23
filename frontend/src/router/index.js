@@ -46,6 +46,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/admin/availability/:userId',
+      name: 'admin-manage-availability',
+      component: () => import('@/views/AdminManageAvailabilityView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
       path: '/schedule',
       name: 'schedule',
       component: () => import('@/views/ScheduleView.vue'),

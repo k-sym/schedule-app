@@ -45,9 +45,9 @@ function handleDatesUpdated() {
 }
 
 onMounted(() => {
-  // Check if user is entertainer
+  // Check if user is act
   if (authStore.user?.role !== 'entertainer') {
-    showToast('Only entertainers can manage availability', 'error')
+    showToast('Only acts can manage availability', 'error')
     router.push('/dashboard')
   }
 })

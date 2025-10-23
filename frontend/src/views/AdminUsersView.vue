@@ -1,9 +1,7 @@
 <template>
   <div class="dashboard-layout">
     <AppHeader />
-    <div class="dashboard-main">
-      <AppSidebar />
-      <main class="dashboard-content">
+    <main class="dashboard-content">
         <div class="content-header">
           <h1>User Management</h1>
           <button class="btn-primary" @click="showCreateModal = true">
@@ -16,7 +14,7 @@
             <select v-model="roleFilter" class="filter-select">
               <option value="">All Roles</option>
               <option value="admin">Admin</option>
-              <option value="entertainer">Entertainer</option>
+              <option value="entertainer">Act</option>
             </select>
             <select v-model="statusFilter" class="filter-select">
               <option value="">All Status</option>
@@ -43,7 +41,7 @@
                   <td>{{ user.email }}</td>
                   <td>
                     <span :class="['badge', `badge-${user.role}`]">
-                      {{ user.role }}
+                      {{ user.role === 'entertainer' ? 'Act' : user.role === 'admin' ? 'Admin' : user.role }}
                     </span>
                   </td>
                   <td>{{ user.phone || '-' }}</td>
@@ -54,6 +52,14 @@
                   </td>
                   <td>
                     <div class="actions">
+                      <button
+                        v-if="user.role === 'entertainer'"
+                        class="btn-icon"
+                        @click="manageAvailability(user)"
+                        title="Manage Availability"
+                      >
+                        📅
+                      </button>
                       <button
                         class="btn-icon"
                         @click="editUser(user)"
@@ -91,7 +97,6 @@
           </div>
         </div>
       </main>
-    </div>
 
     <!-- Create/Edit User Modal -->
     <div v-if="showCreateModal || showEditModal" class="modal-overlay" @click="closeModals">
@@ -136,7 +141,7 @@
             <label>Role *</label>
             <select v-model="formData.role" required>
               <option value="admin">Admin</option>
-              <option value="entertainer">Entertainer</option>
+              <option value="entertainer">Act</option>
             </select>
           </div>
 
@@ -184,12 +189,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
-import AppSidebar from '@/components/common/AppSidebar.vue'
 import { useUsersStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 
+const router = useRouter()
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
 const { success, error } = useToast()
@@ -244,6 +250,10 @@ async function fetchUsers() {
   } finally {
     loading.value = false
   }
+}
+
+function manageAvailability(user) {
+  router.push({ name: 'admin-manage-availability', params: { userId: user.id } })
 }
 
 function editUser(user) {
@@ -322,15 +332,9 @@ function closeModals() {
 
 <style scoped>
 .dashboard-layout {
-  height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-.dashboard-main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
+  height: 100vh;
 }
 
 .dashboard-content {

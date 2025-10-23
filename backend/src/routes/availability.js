@@ -22,6 +22,13 @@ router.post('/bulk', availabilityController.bulkCreateAvailability);
 // DELETE /api/availability/bulk - Bulk delete availability (entertainers only)
 router.delete('/bulk', availabilityController.bulkDeleteAvailability);
 
+// Admin routes for managing other users' availability
+// POST /api/availability/admin/:userId/bulk - Admin bulk create for specific user
+router.post('/admin/:userId/bulk', isAdmin, availabilityController.adminBulkCreateAvailability);
+
+// DELETE /api/availability/admin/:userId/bulk - Admin bulk delete for specific user
+router.delete('/admin/:userId/bulk', isAdmin, availabilityController.adminBulkDeleteAvailability);
+
 // POST /api/availability - Create single availability entry (entertainers only)
 router.post('/', availabilityController.createAvailability);
 

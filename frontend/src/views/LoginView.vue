@@ -39,7 +39,7 @@
       <div class="demo-credentials">
         <p><strong>Demo Credentials:</strong></p>
         <p>Admin: admin@scheduleapp.com / admin123</p>
-        <p>Entertainer: entertainer@scheduleapp.com / admin123</p>
+        <p>Act: entertainer@scheduleapp.com / admin123</p>
       </div>
     </div>
   </div>

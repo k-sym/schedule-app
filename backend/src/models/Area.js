@@ -10,6 +10,10 @@ module.exports = (sequelize) => {
     static associate(models) {
       // Define associations here
       // Area.hasMany(models.Booking, { foreignKey: 'area_id', as: 'bookings' });
+      Area.hasMany(models.AreaRule, {
+        foreignKey: 'area_id',
+        as: 'rules'
+      });
     }
 
     /**
@@ -84,6 +88,16 @@ module.exports = (sequelize) => {
       notes: {
         type: DataTypes.TEXT,
         allowNull: true
+      },
+      abbreviation: {
+        type: DataTypes.STRING(3),
+        allowNull: true,
+        validate: {
+          len: {
+            args: [1, 3],
+            msg: 'Abbreviation must be between 1 and 3 characters'
+          }
+        }
       },
       is_active: {
         type: DataTypes.BOOLEAN,

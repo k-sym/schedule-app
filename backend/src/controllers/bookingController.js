@@ -119,7 +119,7 @@ async function getBookingById(req, res) {
  */
 async function createBooking(req, res) {
   try {
-    const { entertainerId, areaId, bookingDate, notes } = req.body;
+    const { entertainerId, areaId, bookingDate, notes, emoji, display_note } = req.body;
 
     if (!entertainerId || !areaId || !bookingDate) {
       return res.status(400).json({
@@ -129,7 +129,7 @@ async function createBooking(req, res) {
     }
 
     const result = await bookingService.createBooking(
-      { entertainerId, areaId, bookingDate, notes },
+      { entertainerId, areaId, bookingDate, notes, emoji, display_note },
       req.user.id
     );
 
@@ -161,14 +161,16 @@ async function createBooking(req, res) {
  */
 async function updateBooking(req, res) {
   try {
-    const { entertainerId, areaId, bookingDate, notes, status } = req.body;
+    const { entertainerId, areaId, bookingDate, notes, status, emoji, display_note } = req.body;
 
     const result = await bookingService.updateBooking(req.params.id, {
       entertainerId,
       areaId,
       bookingDate,
       notes,
-      status
+      status,
+      emoji,
+      display_note
     });
 
     if (!result.success) {

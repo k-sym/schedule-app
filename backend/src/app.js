@@ -31,6 +31,7 @@ app.use('/api/areas', require('./routes/areas'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/availability', require('./routes/availability'));
 app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/area-rules', require('./routes/areaRules'));
 
 // 404 handler
 app.use((req, res) => {

@@ -1,0 +1,14 @@
+/**
+ * Preset emojis for booking display
+ * Used in booking edit modal and area rules configuration
+ */
+export const PRESET_EMOJIS = [
+  { emoji: '🎧', label: 'Headphones' },
+  { emoji: '🎸', label: 'Guitar' },
+  { emoji: '🎤', label: 'Microphone' },
+  { emoji: '☂️', label: 'Umbrella' },
+  { emoji: '🍻', label: 'Two Beers' },
+  { emoji: '🤘', label: 'Rock Hand Sign' },
+  { emoji: '🎭', label: 'Performing Arts' },
+  { emoji: '🎛️', label: 'Mixer' }
+]

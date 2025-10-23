@@ -23,15 +23,22 @@ const User = require('./User')(sequelize);
 const Area = require('./Area')(sequelize);
 const Availability = require('./Availability')(sequelize);
 const Booking = require('./Booking')(sequelize);
+const AreaRule = require('./areaRule')(sequelize);
 
 // Define associations
-const models = { User, Area, Availability, Booking };
+const models = { User, Area, Availability, Booking, AreaRule };
 
 if (Availability.associate) {
   Availability.associate(models);
 }
 if (Booking.associate) {
   Booking.associate(models);
+}
+if (Area.associate) {
+  Area.associate(models);
+}
+if (AreaRule.associate) {
+  AreaRule.associate(models);
 }
 
 const db = {
@@ -40,7 +47,8 @@ const db = {
   User,
   Area,
   Availability,
-  Booking
+  Booking,
+  AreaRule
 };
 
 module.exports = db;

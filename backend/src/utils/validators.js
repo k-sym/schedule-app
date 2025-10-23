@@ -85,6 +85,10 @@ const areaSchemas = {
       operating_hours: Joi.object().optional().allow(null),
       capacity: Joi.number().integer().min(1).optional().allow(null),
       notes: Joi.string().optional().allow(null, ''),
+      abbreviation: Joi.string().min(1).max(3).optional().allow(null, '').messages({
+        'string.max': 'Abbreviation must not exceed 3 characters',
+        'string.min': 'Abbreviation must be at least 1 character'
+      }),
       is_active: Joi.boolean().default(true)
     })
   },
@@ -99,6 +103,10 @@ const areaSchemas = {
       operating_hours: Joi.object().optional().allow(null),
       capacity: Joi.number().integer().min(1).optional().allow(null),
       notes: Joi.string().optional().allow(null, ''),
+      abbreviation: Joi.string().min(1).max(3).optional().allow(null, '').messages({
+        'string.max': 'Abbreviation must not exceed 3 characters',
+        'string.min': 'Abbreviation must be at least 1 character'
+      }),
       is_active: Joi.boolean().optional()
     }).min(1)
   },

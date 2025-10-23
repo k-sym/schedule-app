@@ -78,6 +78,14 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true
       },
+      emoji: {
+        type: DataTypes.STRING(10),
+        allowNull: true
+      },
+      display_note: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+      },
       created_by: {
         type: DataTypes.UUID,
         allowNull: false

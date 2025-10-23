@@ -131,7 +131,7 @@ async function getBookingById(bookingId) {
  * @returns {Promise<Object>} { success, booking, conflicts, warnings }
  */
 async function createBooking(bookingData, createdBy) {
-  const { entertainerId, areaId, bookingDate, notes } = bookingData;
+  const { entertainerId, areaId, bookingDate, notes, emoji, display_note } = bookingData;
 
   // Validate booking for conflicts
   const validation = await conflictService.validateBooking({
@@ -156,6 +156,8 @@ async function createBooking(bookingData, createdBy) {
       area_id: areaId,
       booking_date: bookingDate,
       notes: notes || null,
+      emoji: emoji || null,
+      display_note: display_note || null,
       status: 'confirmed',
       created_by: createdBy
     });
@@ -227,6 +229,8 @@ async function updateBooking(bookingId, updates) {
   if (updates.areaId) booking.area_id = updates.areaId;
   if (updates.bookingDate) booking.booking_date = updates.bookingDate;
   if (updates.notes !== undefined) booking.notes = updates.notes;
+  if (updates.emoji !== undefined) booking.emoji = updates.emoji;
+  if (updates.display_note !== undefined) booking.display_note = updates.display_note;
   if (updates.status) booking.status = updates.status;
 
   await booking.save();

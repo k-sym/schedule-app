@@ -4,7 +4,16 @@
     <div class="month-navigation">
       <button @click="previousMonth" class="nav-btn">&lt; Previous</button>
       <h2 class="month-title">{{ monthName }} {{ currentYear }}</h2>
-      <button @click="nextMonth" class="nav-btn">Next &gt;</button>
+      <div class="nav-right">
+        <button
+          @click="exportToImage"
+          class="export-btn"
+          :disabled="isExporting || loading"
+        >
+          {{ isExporting ? 'Exporting...' : 'Export as Image' }}
+        </button>
+        <button @click="nextMonth" class="nav-btn">Next &gt;</button>
+      </div>
     </div>
 
     <div class="schedule-layout">
@@ -54,25 +63,30 @@
                   @dragenter="handleDragEnter($event, area.id, day)"
                   @dragleave="handleDragLeave"
                 >
-                  <div class="area-label">{{ area.name }}</div>
-                  
+                  <!-- Rotated Abbreviation -->
+                  <div class="area-abbreviation" :title="area.name">
+                    <span
+                      v-for="(char, index) in getReversedAbbreviation(area)"
+                      :key="index"
+                      class="abbr-char"
+                    >
+                      {{ char }}
+                    </span>
+                  </div>
+
                   <!-- Booking Display -->
                   <div
                     v-if="hasBooking(area.id, day)"
                     class="booking"
                     :class="getBookingClass(area.id, day)"
-                    @click="editBooking(getBooking(area.id, day))"
+                    @click="openBookingEditModal(getBooking(area.id, day))"
                   >
-                    <span class="booking-name">
-                      {{ getEntertainerName(area.id, day) }}
+                    <span class="booking-content">
+                      <span v-if="getBooking(area.id, day).emoji" class="booking-emoji">{{ getBooking(area.id, day).emoji }}</span>
+                      <span class="booking-name">
+                        {{ getBookingDisplayText(area.id, day) }}
+                      </span>
                     </span>
-                    <button
-                      class="delete-btn"
-                      @click.stop="confirmDeleteBooking(getBooking(area.id, day))"
-                      title="Cancel booking"
-                    >
-                      ×
-                    </button>
                   </div>
 
                   <!-- Empty Drop Zone -->
@@ -118,6 +132,15 @@
       </div>
     </div>
 
+    <!-- Booking Edit Modal -->
+    <BookingEditModal
+      :is-open="showBookingEditModal"
+      :booking="selectedBooking"
+      @close="closeBookingEditModal"
+      @save="handleBookingSave"
+      @delete="handleBookingDelete"
+    />
+
     <!-- Conflict Modal -->
     <div v-if="showConflictModal" class="modal-overlay" @click="closeConflictModal">
       <div class="modal-content" @click.stop>
@@ -152,11 +175,15 @@ import { useBookingStore } from '@/stores/bookings'
 import { useUsersStore } from '@/stores/users'
 import { useAreasStore } from '@/stores/areas'
 import { useAvailabilityStore } from '@/stores/availability'
+import { useAreaRulesStore } from '@/stores/areaRules'
+import BookingEditModal from './BookingEditModal.vue'
+import html2canvas from 'html2canvas'
 
 const bookingStore = useBookingStore()
 const userStore = useUsersStore()
 const areaStore = useAreasStore()
 const availabilityStore = useAvailabilityStore()
+const areaRulesStore = useAreaRulesStore()
 
 // State
 const currentYear = ref(new Date().getFullYear())
@@ -169,6 +196,9 @@ const dragOverTarget = ref(null)
 const showConflictModal = ref(false)
 const conflicts = ref([])
 const warnings = ref([])
+const showBookingEditModal = ref(false)
+const selectedBooking = ref(null)
+const isExporting = ref(false)
 
 // Local copies
 const localBookings = ref([])
@@ -242,6 +272,19 @@ function getEntertainerName(areaId, day) {
   return booking.entertainer.name
 }
 
+function getBookingDisplayText(areaId, day) {
+  const booking = getBooking(areaId, day)
+  if (!booking) return ''
+  
+  // If display_note is set, show it instead of entertainer name
+  if (booking.display_note) {
+    return booking.display_note
+  }
+  
+  // Otherwise show entertainer name
+  return booking.entertainer ? booking.entertainer.name : ''
+}
+
 function getBookingClass(areaId, day) {
   const booking = getBooking(areaId, day)
   if (!booking) return ''
@@ -258,6 +301,11 @@ function isAvailableOnDate(entertainerId, dateStr) {
   return localAvailability.value.some(
     a => a.entertainer_id === entertainerId && a.available_date === dateStr
   )
+}
+
+function getReversedAbbreviation(area) {
+  const abbr = area.abbreviation || area.name.substring(0, 3).toUpperCase()
+  return abbr.split('').reverse()
 }
 
 // Drag and Drop
@@ -298,6 +346,9 @@ async function handleDrop(event, areaId, day) {
   const bookingDate = formatDate(day)
   const entertainerId = draggedEntertainer.value.id
 
+  // Get default emoji from area rules
+  const defaultEmoji = areaRulesStore.getDefaultEmoji(areaId, bookingDate)
+
   // Save scroll position before reloading
   const calendarSection = document.querySelector('.calendar-section')
   const scrollTop = calendarSection ? calendarSection.scrollTop : 0
@@ -306,7 +357,8 @@ async function handleDrop(event, areaId, day) {
     const result = await bookingStore.createBooking({
       entertainerId,
       areaId,
-      bookingDate
+      bookingDate,
+      emoji: defaultEmoji
     })
 
     if (!result.success) {
@@ -342,8 +394,57 @@ async function handleDrop(event, areaId, day) {
 }
 
 // Actions
-function editBooking(booking) {
-  console.log('Edit booking:', booking)
+function openBookingEditModal(booking) {
+  selectedBooking.value = booking
+  showBookingEditModal.value = true
+}
+
+function closeBookingEditModal() {
+  showBookingEditModal.value = false
+  selectedBooking.value = null
+}
+
+async function handleBookingSave(updates) {
+  if (!selectedBooking.value) return
+
+  // Save scroll position before reloading
+  const calendarSection = document.querySelector('.calendar-section')
+  const scrollTop = calendarSection ? calendarSection.scrollTop : 0
+
+  try {
+    await bookingStore.updateBooking(selectedBooking.value.id, updates)
+    await loadBookings()
+
+    // Restore scroll position after DOM updates
+    await new Promise(resolve => setTimeout(resolve, 0))
+    if (calendarSection) {
+      calendarSection.scrollTop = scrollTop
+    }
+
+    closeBookingEditModal()
+  } catch (error) {
+    console.error('Error updating booking:', error)
+    alert('Failed to update booking')
+  }
+}
+
+async function handleBookingDelete() {
+  if (!selectedBooking.value) return
+
+  // Save scroll position before reloading
+  const calendarSection = document.querySelector('.calendar-section')
+  const scrollTop = calendarSection ? calendarSection.scrollTop : 0
+
+  await bookingStore.deleteBooking(selectedBooking.value.id)
+  await loadBookings()
+
+  // Restore scroll position after DOM updates
+  await new Promise(resolve => setTimeout(resolve, 0))
+  if (calendarSection) {
+    calendarSection.scrollTop = scrollTop
+  }
+
+  closeBookingEditModal()
 }
 
 async function confirmDeleteBooking(booking) {
@@ -385,6 +486,69 @@ function nextMonth() {
     currentYear.value++
   } else {
     currentMonth.value++
+  }
+}
+
+// Export to Image
+async function exportToImage() {
+  isExporting.value = true
+
+  try {
+    const calendarElement = document.querySelector('.calendar-grid')
+    if (!calendarElement) {
+      console.error('Calendar element not found')
+      return
+    }
+
+    // Save original styles
+    const originalStyles = {
+      width: calendarElement.style.width,
+      minWidth: calendarElement.style.minWidth,
+      maxWidth: calendarElement.style.maxWidth,
+      transform: calendarElement.style.transform
+    }
+
+    // Force fixed dimensions for consistent export
+    calendarElement.style.width = '1920px'
+    calendarElement.style.minWidth = '1920px'
+    calendarElement.style.maxWidth = '1920px'
+    calendarElement.style.transform = 'scale(1)'
+
+    // Wait for reflow
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Capture with high resolution
+    const canvas = await html2canvas(calendarElement, {
+      scale: 2,
+      width: 1920,
+      windowWidth: 1920,
+      backgroundColor: '#ffffff',
+      logging: false
+    })
+
+    // Restore original styles
+    Object.assign(calendarElement.style, originalStyles)
+
+    // Download image
+    canvas.toBlob(blob => {
+      if (!blob) {
+        console.error('Failed to create image blob')
+        return
+      }
+
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      const filename = `schedule-${monthName.value.toLowerCase()}-${currentYear.value}.png`
+      link.href = url
+      link.download = filename
+      link.click()
+      URL.revokeObjectURL(url)
+    }, 'image/png')
+  } catch (error) {
+    console.error('Error exporting calendar:', error)
+    alert('Failed to export calendar. Please try again.')
+  } finally {
+    isExporting.value = false
   }
 }
 
@@ -441,7 +605,8 @@ onMounted(async () => {
     loadBookings(),
     loadEntertainers(),
     loadAreas(),
-    loadAvailability()
+    loadAvailability(),
+    areaRulesStore.fetchAllRules()
   ])
 })
 </script>
@@ -470,6 +635,12 @@ onMounted(async () => {
   color: #333;
 }
 
+.nav-right {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .nav-btn {
   padding: 0.5rem 1rem;
   background: white;
@@ -483,6 +654,28 @@ onMounted(async () => {
 .nav-btn:hover {
   background: #f5f5f5;
   border-color: #2196F3;
+}
+
+.export-btn {
+  padding: 0.5rem 1rem;
+  background: #2196F3;
+  color: white;
+  border: 1px solid #2196F3;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #1976D2;
+  border-color: #1976D2;
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .schedule-layout {
@@ -531,7 +724,7 @@ onMounted(async () => {
   border: 1px solid #dee2e6;
   border-radius: 6px;
   background: white;
-  min-height: 160px;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -574,11 +767,13 @@ onMounted(async () => {
 .area-section {
   flex: 1;
   border-bottom: 1px solid #e9ecef;
-  padding: 0.4rem;
+  padding: 0.25rem;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
   position: relative;
-  min-height: 32px;
+  min-height: 28px;
+  gap: 0.25rem;
   transition: all 0.2s;
 }
 
@@ -592,34 +787,69 @@ onMounted(async () => {
   border-radius: 4px;
 }
 
-.area-label {
-  font-size: 0.7rem;
-  font-weight: 600;
+.area-abbreviation {
+  font-size: 0.65rem;
+  font-weight: 700;
   color: #6c757d;
   text-transform: uppercase;
-  margin-bottom: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.2rem;
+  min-width: 14px;
+  background: #f8f9fa;
+  border-radius: 2px;
+  flex-shrink: 0;
+  cursor: help;
+  line-height: 1;
+}
+
+.abbr-char {
+  display: block;
+  line-height: 0.8;
+  margin: 0;
+  transform: rotate(270deg);
+  transform-origin: center center;
 }
 
 .booking {
   flex: 1;
-  background: #4CAF50;
-  color: white;
+  background: white;
+  color: #333;
+  border: 2px solid #4CAF50;
   border-radius: 3px;
-  padding: 0.3rem 0.4rem;
+  padding: 0.25rem 0.4rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   cursor: pointer;
   transition: all 0.2s;
+  min-height: 24px;
 }
 
 .booking:hover {
-  background: #45a049;
+  border-color: #45a049;
+  background: #f1f8f4;
   transform: translateY(-1px);
 }
 
 .booking.unavailable-warning {
-  background: #FF9800;
+  border-color: #FF9800;
+  color: #333;
+}
+
+.booking-content {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  overflow: hidden;
+  flex: 1;
+}
+
+.booking-emoji {
+  font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .booking-name {
@@ -660,6 +890,7 @@ onMounted(async () => {
   border: 1px dashed transparent;
   border-radius: 3px;
   transition: all 0.2s;
+  min-height: 24px;
 }
 
 .area-section:hover .drop-zone {
@@ -669,7 +900,7 @@ onMounted(async () => {
 
 .drop-hint {
   color: #adb5bd;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 /* Acts Sidebar */

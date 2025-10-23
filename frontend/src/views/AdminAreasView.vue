@@ -19,6 +19,9 @@
               <div class="area-card-header">
                 <h3>{{ area.name }}</h3>
                 <div class="area-actions">
+                  <button class="btn-icon" @click="openRulesModal(area)" title="Rules">
+                    📋
+                  </button>
                   <button class="btn-icon" @click="editArea(area)" title="Edit">
                     ✏️
                   </button>
@@ -33,6 +36,11 @@
               </div>
 
               <div class="area-card-body">
+                <div class="area-info" v-if="area.abbreviation">
+                  <span class="info-label">Abbreviation:</span>
+                  <span class="info-value">{{ area.abbreviation }}</span>
+                </div>
+
                 <div class="area-info">
                   <span class="info-label">Display Order:</span>
                   <span class="info-value">{{ area.display_order }}</span>
@@ -96,6 +104,18 @@
               />
             </div>
 
+            <div class="form-group">
+              <label>Abbreviation</label>
+              <input
+                v-model="formData.abbreviation"
+                type="text"
+                maxlength="3"
+                placeholder="3 char max"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group">
               <label>Display Order *</label>
               <input
@@ -175,6 +195,13 @@
       </div>
     </div>
 
+    <!-- Area Rules Modal -->
+    <AreaRulesModal
+      :is-open="showRulesModal"
+      :area="selectedAreaForRules"
+      @close="closeRulesModal"
+    />
+
     <!-- Confirm Delete Modal -->
     <div v-if="showDeleteModal" class="modal-overlay" @click="showDeleteModal = false">
       <div class="modal modal-small" @click.stop>
@@ -201,6 +228,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AreaRulesModal from '@/components/admin/AreaRulesModal.vue'
 import { useAreasStore } from '@/stores/areas'
 import { useToast } from '@/composables/useToast'
 
@@ -212,13 +240,16 @@ const submitting = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
+const showRulesModal = ref(false)
 const areaToDelete = ref(null)
 const editingAreaId = ref(null)
+const selectedAreaForRules = ref(null)
 
 const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 const formData = ref({
   name: '',
+  abbreviation: '',
   display_order: 0,
   operating_hours: {},
   capacity: null,
@@ -250,6 +281,7 @@ function editArea(area) {
   editingAreaId.value = area.id
   formData.value = {
     name: area.name,
+    abbreviation: area.abbreviation || '',
     display_order: area.display_order,
     operating_hours: area.operating_hours ? JSON.parse(JSON.stringify(area.operating_hours)) : {},
     capacity: area.capacity,
@@ -257,6 +289,16 @@ function editArea(area) {
     is_active: area.is_active
   }
   showEditModal.value = true
+}
+
+function openRulesModal(area) {
+  selectedAreaForRules.value = area
+  showRulesModal.value = true
+}
+
+function closeRulesModal() {
+  showRulesModal.value = false
+  selectedAreaForRules.value = null
 }
 
 function confirmDelete(area) {
@@ -324,6 +366,7 @@ function closeModals() {
   editingAreaId.value = null
   formData.value = {
     name: '',
+    abbreviation: '',
     display_order: 0,
     operating_hours: {},
     capacity: null,

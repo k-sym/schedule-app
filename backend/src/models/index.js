@@ -21,17 +21,19 @@ const sequelize = new Sequelize(
 // Import models
 const User = require('./User')(sequelize);
 const Area = require('./Area')(sequelize);
+const Availability = require('./Availability')(sequelize);
 
-// Define associations here when needed
-// User.hasMany(Booking);
-// Area.hasMany(Booking);
-// etc...
+// Define associations
+if (Availability.associate) {
+  Availability.associate({ User, Area, Availability });
+}
 
 const db = {
   sequelize,
   Sequelize,
   User,
-  Area
+  Area,
+  Availability
 };
 
 module.exports = db;

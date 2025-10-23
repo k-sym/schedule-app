@@ -26,6 +26,16 @@
         <span class="nav-text">Areas</span>
       </router-link>
 
+      <router-link
+        v-if="isEntertainer"
+        to="/availability"
+        class="nav-item"
+        active-class="active"
+      >
+        <span class="nav-icon">📅</span>
+        <span class="nav-text">Availability</span>
+      </router-link>
+
       <router-link to="/profile" class="nav-item" active-class="active">
         <span class="nav-icon">⚙️</span>
         <span class="nav-text">Profile</span>
@@ -40,6 +50,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
+const isEntertainer = computed(() => authStore.isEntertainer)
 </script>
 
 <style scoped>

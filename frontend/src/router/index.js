@@ -40,6 +40,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
+      path: '/availability',
+      name: 'availability',
+      component: () => import('@/views/AvailabilityView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/public/:year?/:month?',
       name: 'public-schedule',
       component: () => import('@/views/PublicScheduleView.vue')

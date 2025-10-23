@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
+  const isEntertainer = computed(() => user.value?.role === 'entertainer')
 
   function setAuth(authData) {
     user.value = authData.user
@@ -31,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     isAuthenticated,
     isAdmin,
+    isEntertainer,
     setAuth,
     clearAuth
   }

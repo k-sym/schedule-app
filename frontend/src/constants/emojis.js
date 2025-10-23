@@ -10,5 +10,14 @@ export const PRESET_EMOJIS = [
   { emoji: '🍻', label: 'Two Beers' },
   { emoji: '🤘', label: 'Rock Hand Sign' },
   { emoji: '🎭', label: 'Performing Arts' },
-  { emoji: '🎛️', label: 'Mixer' }
+  { emoji: '🎛️', label: 'Mixer' },
+  { emoji: '🕺', label: 'Disco Dancer' },
+  { emoji: '🤠', label: 'Cowboy Hat Face' },
+  { emoji: '❓', label: 'Question Mark' },
+  { emoji: '🖤', label: 'Black Heart' },
+  { emoji: '🥁', label: 'Drum' },
+  { emoji: '🥊', label: 'Boxing Glove' },
+  { emoji: '⚽', label: 'Football' },
+  { emoji: '🏉', label: 'Rugby Ball' },
+  { emoji: '🧠', label: 'Brain' }
 ]

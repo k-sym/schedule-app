@@ -1,0 +1,631 @@
+<template>
+  <div class="schedule-calendar">
+    <!-- Month Navigation -->
+    <div class="calendar-header">
+      <button @click="previousMonth" class="nav-button">&lt; Previous</button>
+      <h2>{{ monthName }} {{ currentYear }}</h2>
+      <button @click="nextMonth" class="nav-button">Next &gt;</button>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading">
+      Loading schedule...
+    </div>
+
+    <!-- Calendar Grid -->
+    <div v-else class="calendar-grid">
+      <!-- Header Row: Area Names -->
+      <div class="grid-header">
+        <div class="date-column-header">Date</div>
+        <div v-for="area in areas" :key="area.id" class="area-header">
+          {{ area.name }}
+        </div>
+      </div>
+
+      <!-- Date Rows -->
+      <div v-for="day in daysInMonth" :key="day" class="grid-row">
+        <!-- Date Column -->
+        <div class="date-cell">
+          <div class="day-number">{{ day }}</div>
+          <div class="day-name">{{ getDayName(day) }}</div>
+        </div>
+
+        <!-- Area Columns (Drop Zones) -->
+        <div
+          v-for="area in areas"
+          :key="area.id"
+          class="booking-cell"
+          :class="{ 'has-booking': hasBooking(area.id, day) }"
+          @drop="handleDrop($event, area.id, day)"
+          @dragover.prevent
+          @dragenter="handleDragEnter($event, area.id, day)"
+          @dragleave="handleDragLeave"
+        >
+          <div
+            v-if="hasBooking(area.id, day)"
+            class="booking-card"
+            :class="getBookingClass(area.id, day)"
+            @click="editBooking(getBooking(area.id, day))"
+          >
+            <div class="entertainer-name">
+              {{ getEntertainerName(area.id, day) }}
+            </div>
+            <button
+              class="delete-button"
+              @click.stop="confirmDeleteBooking(getBooking(area.id, day))"
+            >
+              ×
+            </button>
+          </div>
+          <div v-else class="empty-slot">Drop here</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Draggable Entertainer List -->
+    <div class="entertainer-list">
+      <h3>Entertainers</h3>
+      <div class="list-filters">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search entertainers..."
+          class="search-input"
+        />
+      </div>
+      <div class="entertainers">
+        <div
+          v-for="entertainer in filteredEntertainers"
+          :key="entertainer.id"
+          class="entertainer-item"
+          draggable="true"
+          @dragstart="handleDragStart($event, entertainer)"
+          @dragend="handleDragEnd"
+        >
+          <span class="entertainer-name">
+            {{ entertainer.first_name }} {{ entertainer.last_name }}
+          </span>
+          <span
+            class="availability-indicator"
+            :class="{ available: isAvailableOnDate(entertainer.id, selectedDate) }"
+          >
+            {{ isAvailableOnDate(entertainer.id, selectedDate) ? '✓' : '⚠' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conflict Modal -->
+    <div v-if="showConflictModal" class="modal-overlay" @click="closeConflictModal">
+      <div class="modal-content" @click.stop>
+        <h3>Booking Conflicts Detected</h3>
+        <div v-for="(conflict, index) in conflicts" :key="index" class="conflict-item">
+          <p class="conflict-message">{{ conflict.message }}</p>
+        </div>
+        <div v-if="warnings.length > 0" class="warnings-section">
+          <h4>Warnings:</h4>
+          <div v-for="(warning, index) in warnings" :key="index" class="warning-item">
+            <p>{{ warning.message }}</p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button @click="closeConflictModal" class="btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { useBookingStore } from '@/stores/bookings'
+import { useUsersStore } from '@/stores/users'
+import { useAreasStore } from '@/stores/areas'
+import { useAvailabilityStore } from '@/stores/availability'
+
+const bookingStore = useBookingStore()
+const userStore = useUsersStore()
+const areaStore = useAreasStore()
+const availabilityStore = useAvailabilityStore()
+
+// State
+const currentYear = ref(new Date().getFullYear())
+const currentMonth = ref(new Date().getMonth() + 1) // 1-12
+const loading = ref(false)
+const searchQuery = ref('')
+const draggedEntertainer = ref(null)
+const dragOverCell = ref(null)
+const selectedDate = ref(null)
+const showConflictModal = ref(false)
+const conflicts = ref([])
+const warnings = ref([])
+
+// Local copies to avoid reactive loops
+const localBookings = ref([])
+const localAvailability = ref([])
+
+// Computed
+const monthName = computed(() => {
+  const date = new Date(currentYear.value, currentMonth.value - 1, 1)
+  return date.toLocaleString('default', { month: 'long' })
+})
+
+const daysInMonth = computed(() => {
+  const days = new Date(currentYear.value, currentMonth.value, 0).getDate()
+  return Array.from({ length: days }, (_, i) => i + 1)
+})
+
+const areas = computed(() => areaStore.areas)
+
+const entertainers = computed(() => {
+  return userStore.users.filter(u => u.role === 'entertainer')
+})
+
+const filteredEntertainers = computed(() => {
+  if (!searchQuery.value) return entertainers.value
+  const query = searchQuery.value.toLowerCase()
+  return entertainers.value.filter(e =>
+    `${e.first_name} ${e.last_name}`.toLowerCase().includes(query)
+  )
+})
+
+// Methods
+function formatDate(day) {
+  const month = String(currentMonth.value).padStart(2, '0')
+  const dayStr = String(day).padStart(2, '0')
+  return `${currentYear.value}-${month}-${dayStr}`
+}
+
+function getDayName(day) {
+  const date = new Date(currentYear.value, currentMonth.value - 1, day)
+  return date.toLocaleString('default', { weekday: 'short' })
+}
+
+function hasBooking(areaId, day) {
+  const dateStr = formatDate(day)
+  return localBookings.value.some(
+    b => b.area_id === areaId && b.booking_date === dateStr
+  )
+}
+
+function getBooking(areaId, day) {
+  const dateStr = formatDate(day)
+  return localBookings.value.find(
+    b => b.area_id === areaId && b.booking_date === dateStr
+  )
+}
+
+function getEntertainerName(areaId, day) {
+  const booking = getBooking(areaId, day)
+  if (!booking || !booking.entertainer) return ''
+  return `${booking.entertainer.first_name} ${booking.entertainer.last_name}`
+}
+
+function getBookingClass(areaId, day) {
+  const booking = getBooking(areaId, day)
+  if (!booking) return ''
+
+  const dateStr = formatDate(day)
+  const isAvailable = isAvailableOnDate(booking.entertainer_id, dateStr)
+
+  return {
+    'unavailable-warning': !isAvailable
+  }
+}
+
+function isAvailableOnDate(entertainerId, dateStr) {
+  return localAvailability.value.some(
+    a => a.entertainer_id === entertainerId && a.available_date === dateStr
+  )
+}
+
+// Drag and Drop Handlers
+function handleDragStart(event, entertainer) {
+  draggedEntertainer.value = entertainer
+  event.dataTransfer.effectAllowed = 'move'
+}
+
+function handleDragEnd() {
+  draggedEntertainer.value = null
+  dragOverCell.value = null
+}
+
+function handleDragEnter(event, areaId, day) {
+  dragOverCell.value = { areaId, day }
+  selectedDate.value = formatDate(day)
+}
+
+function handleDragLeave() {
+  // Keep drag over state for a moment to avoid flickering
+}
+
+async function handleDrop(event, areaId, day) {
+  event.preventDefault()
+  if (!draggedEntertainer.value) return
+
+  const bookingDate = formatDate(day)
+  const entertainerId = draggedEntertainer.value.id
+
+  // Create booking
+  const result = await bookingStore.createBooking({
+    entertainerId,
+    areaId,
+    bookingDate
+  })
+
+  if (!result.success) {
+    conflicts.value = result.conflicts || []
+    warnings.value = result.warnings || []
+    showConflictModal.value = true
+  } else {
+    // Update local bookings
+    await loadBookings()
+
+    // Show warnings if any
+    if (result.warnings && result.warnings.length > 0) {
+      warnings.value = result.warnings
+      conflicts.value = []
+      showConflictModal.value = true
+    }
+  }
+
+  draggedEntertainer.value = null
+  dragOverCell.value = null
+}
+
+// Booking Actions
+function editBooking(booking) {
+  // Future: Open edit modal
+  console.log('Edit booking:', booking)
+}
+
+async function confirmDeleteBooking(booking) {
+  if (confirm('Are you sure you want to cancel this booking?')) {
+    await bookingStore.deleteBooking(booking.id)
+    await loadBookings()
+  }
+}
+
+function closeConflictModal() {
+  showConflictModal.value = false
+  conflicts.value = []
+  warnings.value = []
+}
+
+// Navigation
+function previousMonth() {
+  if (currentMonth.value === 1) {
+    currentMonth.value = 12
+    currentYear.value--
+  } else {
+    currentMonth.value--
+  }
+}
+
+function nextMonth() {
+  if (currentMonth.value === 12) {
+    currentMonth.value = 1
+    currentYear.value++
+  } else {
+    currentMonth.value++
+  }
+}
+
+// Data Loading
+async function loadBookings() {
+  loading.value = true
+  try {
+    await bookingStore.fetchBookingsForMonth(currentYear.value, currentMonth.value)
+    // Copy to local ref to avoid reactive loops
+    localBookings.value = [...bookingStore.bookings]
+  } catch (error) {
+    console.error('Failed to load bookings:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadEntertainers() {
+  try {
+    await userStore.fetchAll()
+  } catch (error) {
+    console.error('Failed to load entertainers:', error)
+  }
+}
+
+async function loadAreas() {
+  try {
+    await areaStore.fetchAll()
+  } catch (error) {
+    console.error('Failed to load areas:', error)
+  }
+}
+
+async function loadAvailability() {
+  try {
+    const startDate = formatDate(1)
+    const lastDay = new Date(currentYear.value, currentMonth.value, 0).getDate()
+    const endDate = formatDate(lastDay)
+
+    await availabilityStore.fetchAllAvailability({ startDate, endDate })
+    // Copy to local ref
+    localAvailability.value = [...availabilityStore.availability]
+  } catch (error) {
+    console.error('Failed to load availability:', error)
+  }
+}
+
+// Watchers
+watch([currentYear, currentMonth], async () => {
+  await Promise.all([loadBookings(), loadAvailability()])
+})
+
+// Lifecycle
+onMounted(async () => {
+  await Promise.all([
+    loadBookings(),
+    loadEntertainers(),
+    loadAreas(),
+    loadAvailability()
+  ])
+})
+</script>
+
+<style scoped>
+.schedule-calendar {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem;
+  height: calc(100vh - 80px);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.nav-button {
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.nav-button:hover {
+  background: #f5f5f5;
+}
+
+.calendar-grid {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.grid-header {
+  display: grid;
+  grid-template-columns: 100px repeat(auto-fit, minmax(150px, 1fr));
+  background: #f5f5f5;
+  border-bottom: 2px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.date-column-header,
+.area-header {
+  padding: 1rem;
+  font-weight: 600;
+  text-align: center;
+  border-right: 1px solid #ddd;
+}
+
+.grid-row {
+  display: grid;
+  grid-template-columns: 100px repeat(auto-fit, minmax(150px, 1fr));
+  border-bottom: 1px solid #eee;
+}
+
+.date-cell {
+  padding: 1rem;
+  border-right: 1px solid #ddd;
+  text-align: center;
+  background: #fafafa;
+}
+
+.day-number {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.day-name {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.booking-cell {
+  padding: 0.5rem;
+  border-right: 1px solid #eee;
+  min-height: 60px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.booking-cell:hover {
+  background: #f9f9f9;
+}
+
+.empty-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.booking-card {
+  background: #4CAF50;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+}
+
+.booking-card.unavailable-warning {
+  background: #FF9800;
+}
+
+.booking-card:hover {
+  opacity: 0.9;
+}
+
+.entertainer-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.delete-button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.delete-button:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Entertainer List */
+.entertainer-list {
+  width: 300px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.entertainer-list h3 {
+  margin-top: 0;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.entertainers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entertainer-item {
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: move;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.entertainer-item:hover {
+  background: #f5f5f5;
+  border-color: #2196F3;
+}
+
+.availability-indicator {
+  font-size: 1.2rem;
+  color: #ccc;
+}
+
+.availability-indicator.available {
+  color: #4CAF50;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  color: #d32f2f;
+}
+
+.conflict-item,
+.warning-item {
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background: #fff3e0;
+  border-left: 4px solid #ff9800;
+  border-radius: 4px;
+}
+
+.warnings-section {
+  margin-top: 1rem;
+}
+
+.warnings-section h4 {
+  margin-bottom: 0.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #f5f5f5;
+}
+</style>

@@ -22,10 +22,16 @@ const sequelize = new Sequelize(
 const User = require('./User')(sequelize);
 const Area = require('./Area')(sequelize);
 const Availability = require('./Availability')(sequelize);
+const Booking = require('./Booking')(sequelize);
 
 // Define associations
+const models = { User, Area, Availability, Booking };
+
 if (Availability.associate) {
-  Availability.associate({ User, Area, Availability });
+  Availability.associate(models);
+}
+if (Booking.associate) {
+  Booking.associate(models);
 }
 
 const db = {
@@ -33,7 +39,8 @@ const db = {
   Sequelize,
   User,
   Area,
-  Availability
+  Availability,
+  Booking
 };
 
 module.exports = db;

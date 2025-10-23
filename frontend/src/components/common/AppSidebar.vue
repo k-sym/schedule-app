@@ -27,6 +27,16 @@
       </router-link>
 
       <router-link
+        v-if="isAdmin"
+        to="/schedule"
+        class="nav-item"
+        active-class="active"
+      >
+        <span class="nav-icon">📅</span>
+        <span class="nav-text">Schedule</span>
+      </router-link>
+
+      <router-link
         v-if="isEntertainer"
         to="/availability"
         class="nav-item"

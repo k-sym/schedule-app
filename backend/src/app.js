@@ -30,6 +30,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/areas', require('./routes/areas'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/availability', require('./routes/availability'));
+app.use('/api/bookings', require('./routes/bookings'));
 
 // 404 handler
 app.use((req, res) => {

@@ -101,6 +101,29 @@ export const useAvailabilityStore = defineStore('availability', () => {
   }
 
   /**
+   * Fetch all availability with optional filters (for admins)
+   */
+  async function fetchAllAvailability(filters = {}) {
+    loading.value = true
+    error.value = null
+    try {
+      const params = {}
+      if (filters.startDate) params.startDate = formatDate(filters.startDate)
+      if (filters.endDate) params.endDate = formatDate(filters.endDate)
+      if (filters.entertainerId) params.entertainerId = filters.entertainerId
+
+      const response = await availabilityAPI.getAvailability(params)
+      availability.value = response.data
+      return response.data
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Failed to fetch availability'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
    * Create single availability entry
    */
   async function createAvailability(availableDate, notes = null) {
@@ -245,6 +268,7 @@ export const useAvailabilityStore = defineStore('availability', () => {
     fetchMyAvailability,
     fetchAvailabilityByEntertainer,
     fetchMonthAvailability,
+    fetchAllAvailability,
     createAvailability,
     addMultipleDates,
     removeMultipleDates,

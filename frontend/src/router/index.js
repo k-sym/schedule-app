@@ -46,6 +46,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/schedule',
+      name: 'schedule',
+      component: () => import('@/views/ScheduleView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
       path: '/public/:year?/:month?',
       name: 'public-schedule',
       component: () => import('@/views/PublicScheduleView.vue')

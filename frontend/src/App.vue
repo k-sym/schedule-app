@@ -1,11 +1,12 @@
 <template>
   <div id="app">
+    <Toast />
     <router-view />
   </div>
 </template>
 
 <script setup>
-// App component
+import Toast from '@/components/common/Toast.vue'
 </script>
 
 <style>

@@ -2,13 +2,13 @@
   <div class="availability-layout">
     <AppHeader />
     <div class="availability-main">
-      <AppSidebar />
       <main class="availability-content">
         <div class="content-header">
           <h1>My Availability</h1>
           <p class="subtitle">Mark the days you are available to perform</p>
         </div>
         <div class="content-body">
+          <AvailabilityCalendarFixed @dates-updated="handleDatesUpdated" />
           <div class="instructions">
             <h3>How to use:</h3>
             <ul>
@@ -19,8 +19,6 @@
               <li>Blue selection = Days you've selected</li>
             </ul>
           </div>
-
-          <AvailabilityCalendarFixed @dates-updated="handleDatesUpdated" />
         </div>
       </main>
     </div>

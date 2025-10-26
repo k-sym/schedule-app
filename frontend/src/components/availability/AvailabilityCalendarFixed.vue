@@ -13,6 +13,20 @@
       </button>
     </div>
 
+    <!-- Weekend Toggle -->
+    <div class="weekend-toggle">
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          v-model="weekendToggle"
+          @change="handleWeekendToggle"
+          :disabled="loading"
+        />
+        <span class="toggle-slider"></span>
+        <span class="toggle-text">Mark all weekends as available</span>
+      </label>
+    </div>
+
     <!-- Weekday Headers -->
     <div class="calendar-weekdays">
       <div v-for="day in weekdays" :key="day" class="weekday">
@@ -88,6 +102,7 @@ const currentYear = ref(new Date().getFullYear())
 const currentMonth = ref(new Date().getMonth() + 1) // 1-12
 const selectedDates = ref(new Set())
 const loading = ref(false)
+const weekendToggle = ref(false)
 
 // Local copy of availability data to avoid reactive loops
 const availabilityDates = ref(new Set())
@@ -281,6 +296,47 @@ async function loadAvailability() {
     updateLocalAvailability() // Update local copy after fetch
   } catch (error) {
     console.error('Failed to load availability:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleWeekendToggle() {
+  if (loading.value) return
+
+  loading.value = true
+  try {
+    // Get all weekend dates for the next 12 months from today
+    const today = new Date()
+    const endDate = new Date(today)
+    endDate.setMonth(endDate.getMonth() + 12)
+
+    const weekendDates = []
+    const currentDate = new Date(today)
+
+    while (currentDate <= endDate) {
+      const dayOfWeek = currentDate.getDay()
+      // 5 = Friday, 6 = Saturday
+      if (dayOfWeek === 5 || dayOfWeek === 6) {
+        weekendDates.push(formatDate(currentDate))
+      }
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+
+    if (weekendToggle.value) {
+      // Add all weekend dates
+      await availabilityStore.addMultipleDates(weekendDates)
+    } else {
+      // Remove all weekend dates
+      await availabilityStore.removeMultipleDates(weekendDates)
+    }
+
+    await loadAvailability()
+    emit('dates-updated')
+  } catch (error) {
+    console.error('Error toggling weekend availability:', error)
+    // Revert toggle state on error
+    weekendToggle.value = !weekendToggle.value
   } finally {
     loading.value = false
   }
@@ -490,6 +546,71 @@ onMounted(async () => {
   background: #616161;
 }
 
+/* Weekend Toggle */
+.weekend-toggle {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 50px;
+  height: 26px;
+  background-color: #ccc;
+  border-radius: 26px;
+  transition: background-color 0.3s;
+  flex-shrink: 0;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-slider {
+  background-color: #4CAF50;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-slider::before {
+  transform: translateX(24px);
+}
+
+.toggle-label input[type="checkbox"]:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+}
+
 @media (max-width: 768px) {
   .calendar-cell {
     min-height: 60px;
@@ -506,6 +627,14 @@ onMounted(async () => {
 
   .month-title {
     font-size: 1.2rem;
+  }
+
+  .weekend-toggle {
+    padding: 12px;
+  }
+
+  .toggle-text {
+    font-size: 0.9rem;
   }
 }
 </style>

@@ -819,7 +819,7 @@ onMounted(async () => {
   color: #333;
   border: 2px solid #4CAF50;
   border-radius: 3px;
-  padding: 0.25rem 0.4rem;
+  padding: 0.05rem 0.4rem;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -853,8 +853,8 @@ onMounted(async () => {
 }
 
 .booking-name {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 1.1rem;
+  font-weight: 900;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -134,7 +134,13 @@ class AvailabilityService {
     });
 
     const existingDates = new Set(
-      existingAvailability.map(a => a.available_date.toISOString().split('T')[0])
+      existingAvailability.map(a => {
+        // available_date is already a string in YYYY-MM-DD format from Sequelize
+        const dateStr = typeof a.available_date === 'string'
+          ? a.available_date
+          : a.available_date.toISOString().split('T')[0];
+        return dateStr;
+      })
     );
 
     // Filter out existing dates
